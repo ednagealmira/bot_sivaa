@@ -1,4 +1,5 @@
-const { Client, RemoteAuth } = require("whatsapp-web.js"); // Changed LocalAuth to RemoteAuth
+const { Client, RemoteAuth } = require("whatsapp-web.js");
+// const { Client, LocalAuth } = require('whatsapp-web.js');
 const { MongoStore } = require("wwebjs-mongo");
 const mongoose = require("mongoose");
 const qrcode = require("qrcode-terminal");
@@ -15,7 +16,6 @@ app.listen(port, () => console.log(`Server listening on port ${port}`));
 // Load the FAQ data
 const rawData = fs.readFileSync("faq.json");
 const faqData = JSON.parse(rawData);
-const userActivity = {};
 
 // --- DATABASE CONNECTION ---
 const mongoURI = process.env.MONGO_URI; // We will set this in Render dashboard later
@@ -27,6 +27,7 @@ mongoose.connect(mongoURI).then(() => {
     // Initialize the Client
     // LocalAuth stores your session so you don't scan the QR code every time
     const client = new Client({
+        // authStrategy: new LocalAuth(),
         authStrategy: new RemoteAuth({
             store: store,
             backupSyncIntervalMs: 300000 // Save session every 5 minutes
@@ -79,7 +80,6 @@ mongoose.connect(mongoURI).then(() => {
         const isGroup = chat.isGroup;
 
         let keyword = msgBody;
-        console.log(msgBody);
         // --- SMART GREETING DETECTION ---
         // This Regex breakdown:
         // ^          : Start of the message
@@ -108,31 +108,29 @@ mongoose.connect(mongoURI).then(() => {
                     }
 
                     const excludedTopics = ["kanker serviks", "pemeriksaan iva"];
+
                     if (!excludedTopics.includes(keyword)) {
                         // COUNTER LOGIC
+                        const userSchema = new mongoose.Schema({
+                            userId: { type: String, required: true, unique: true },
+                            messageCount: { type: Number, default: 0 }
+                        });
+                        const User = mongoose.model('User', userSchema);
                         const userId = message.from; // Get the user's phone number ID
-
-                        // If this user is new, start their counter at 0
-                        if (!userActivity[userId]) {
-                            userActivity[userId] = 0;
-                        }
-
-                        // Add 1 to their count
-                        userActivity[userId]++;
-
-                        console.log("userId", userId);
-                        console.log("userActivity count", userActivity[userId]);
-                        // CHECK IF IT IS THE 3RD MESSAGE
-                        if (userActivity[userId] % 3 === 0) {
-                            console.log("sudah nanya 3 kali lebih");
-                            try {
+                        try {
+                            const user = await User.findOneAndUpdate(
+                                { userId: userId },
+                                { $inc: { messageCount: 1 } }, 
+                                { new: true, upsert: true }
+                            );
+                            if (user.messageCount % 3 === 0) {
                                 await client.sendMessage(
                                     message.from,
                                     "Apakah ibu sudah mengerti dengan penjelasan kami?\n\nJika ibu sudah mengerti dan *bersedia mendaftar untuk dilakukan pemeriksaan IVA*, mohon untuk mengisi link google form dibawah ini.\nhttps://tinyurl.com/RencanaIVAPuskesmasBoomBaru",
                                 );
-                            } catch (e) {
-                                console.error(e);
                             }
+                        } catch (e) {
+                            console.error("Database error:", e);
                         }
                     }
                 } else {
