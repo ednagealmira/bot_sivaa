@@ -154,15 +154,19 @@ mongoose.connect(mongoURI).then(() => {
 // Handle Ctrl+C (Manual stop in terminal)
 process.on("SIGINT", async () => {
     console.log("(SIGINT) Shutting down...");
-    await client.destroy();
-    console.log("Client destroyed successfully.");
+    if (client){
+        await client.destroy();
+        console.log("Client destroyed successfully.");
+    }
     process.exit(0);
 });
 
 // Handle Replit "Stop" button or system restarts
 process.on("SIGTERM", async () => {
     console.log("(SIGTERM) Shutting down...");
-    await client.destroy();
-    console.log("Client destroyed successfully.");
+    if (client){
+        await client.destroy();
+        console.log("Client destroyed successfully.");
+    }
     process.exit(0);
 });
