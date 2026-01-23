@@ -19,7 +19,14 @@ const faqData = JSON.parse(rawData);
 let client;
 const userActivity = {};
 
-// Initialize the Client
+// --- DATABASE CONNECTION ---
+const mongoURI = process.env.MONGO_URI; // We will set this in Render dashboard later
+
+mongoose.connect(mongoURI).then(() => {
+    console.log("Connected to MongoDB");
+
+    const store = new MongoStore({ mongoose: mongoose });
+    // Initialize the Client
     // LocalAuth stores your session so you don't scan the QR code every time
     client = new Client({
         // authStrategy: new LocalAuth(),
@@ -46,15 +53,6 @@ const userActivity = {};
             ],
         },
     });
-
-// --- DATABASE CONNECTION ---
-const mongoURI = process.env.MONGO_URI; // We will set this in Render dashboard later
-
-mongoose.connect(mongoURI).then(() => {
-    console.log("Connected to MongoDB");
-
-    const store = new MongoStore({ mongoose: mongoose });
-    
 
     // Generate QR Code for login
     client.on("qr", (qr) => {
