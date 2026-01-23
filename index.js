@@ -1,17 +1,16 @@
 const { Client, RemoteAuth } = require("whatsapp-web.js");
-// const { Client, LocalAuth } = require('whatsapp-web.js');
 const { MongoStore } = require("wwebjs-mongo");
 const mongoose = require("mongoose");
 const qrcode = require("qrcode-terminal");
 const fs = require("fs");
+const http = require("http");
 
-// --- KEEP-ALIVE SERVER (Prevents Sleep) ---
-const express = require("express");
-const app = express();
-const port = process.env.PORT || 3000; // Render sets a PORT env var automatically
-
-app.get("/", (req, res) => res.send("Sivaa Bot is active on Render!"));
-app.listen(port, () => console.log(`Server listening on port ${port}`));
+// --- KEEP-ALIVE SERVER (minimal, no express) ---
+const port = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end("Sivaa Bot is active!");
+}).listen(port, () => console.log(`Server listening on port ${port}`));
 
 // Load the FAQ data
 const rawData = fs.readFileSync("faq.json");
@@ -32,7 +31,7 @@ mongoose.connect(mongoURI).then(() => {
         // authStrategy: new LocalAuth(),
         authStrategy: new RemoteAuth({
             store: store,
-            backupSyncIntervalMs: 300000 // Save session every 5 minutes
+            backupSyncIntervalMs: 60000  // Save session every 5 minutes
         }),
         webVersionCache: {
             type: "remote",
@@ -40,7 +39,8 @@ mongoose.connect(mongoURI).then(() => {
         },
         puppeteer: {
             headless: true,
-            // Render specific args to make Chrome work
+            timeout: 120000,
+            protocolTimeout: 120000,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
@@ -50,6 +50,26 @@ mongoose.connect(mongoURI).then(() => {
                 "--disable-gpu",
                 "--single-process",
                 "--no-zygote",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-translate",
+                "--metrics-recording-only",
+                "--mute-audio",
+                "--js-flags=--max-old-space-size=128",
+                "--disable-features=site-per-process",
+                "--disable-software-rasterizer",
+                "--disable-canvas-aa",
+                "--disable-2d-canvas-clip-aa",
+                "--disable-gl-drawing-for-tests",
+                "--renderer-process-limit=1",
+                "--disable-default-apps",
+                "--disable-hang-monitor",
+                "--disable-prompt-on-repost",
+                "--disable-domain-reliability",
+                "--disable-component-update",
+                "--disable-breakpad",
+                "--disable-ipc-flooding-protection",
             ],
         },
     });
@@ -64,6 +84,10 @@ mongoose.connect(mongoURI).then(() => {
     // Confirm connection
     client.on("ready", () => {
         console.log("Sivaa Bot is ready and listening!");
+    });
+
+    client.on('remote_session_saved', () => {
+        console.log('Session saved to MongoDB!');
     });
 
     // Main Message Handler
@@ -134,7 +158,7 @@ mongoose.connect(mongoURI).then(() => {
                         // } catch (e) {
                         //     console.error("Database error:", e);
                         // }
-                        
+
                         // If this user is new, start their counter at 0
                         if (!userActivity[userId]) {
                             userActivity[userId] = 0;
@@ -170,36 +194,10 @@ mongoose.connect(mongoURI).then(() => {
 
 });
 
-// Add to your existing Express/HTTP bot server:
-const cron = require('node-cron');
-const axios = require('axios');
-const PORT = process.env.PORT || 5000;
-
-// Start your existing bot server first, then:
-cron.schedule('*/10 * * * *', async () => {
-    try {
-        // Ping your own server
-        await axios.get(`http://localhost:${PORT}/`);
-        console.log(`[${new Date().toISOString()}] Self-ping successful`);
-    } catch (error) {
-        console.error(`[${new Date().toISOString()}] Self-ping failed:`, error.message);
-    }
-});
-
-// Optional: Also ping the external URL for redundancy
-cron.schedule('*/14 * * * *', async () => {
-    try {
-        await axios.get('https://bot-sivaa.onrender.com');
-        console.log(`[${new Date().toISOString()}] External ping successful`);
-    } catch (error) {
-        // Ignore errors - Render might be spinning up
-    }
-});
-
 // Handle Ctrl+C (Manual stop in terminal)
 process.on("SIGINT", async () => {
     console.log("(SIGINT) Shutting down...");
-    if (client){
+    if (client) {
         await client.destroy();
         console.log("Client destroyed successfully.");
     }
@@ -209,7 +207,7 @@ process.on("SIGINT", async () => {
 // Handle Replit "Stop" button or system restarts
 process.on("SIGTERM", async () => {
     console.log("(SIGTERM) Shutting down...");
-    if (client){
+    if (client) {
         await client.destroy();
         console.log("Client destroyed successfully.");
     }
