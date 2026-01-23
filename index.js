@@ -16,6 +16,7 @@ app.listen(port, () => console.log(`Server listening on port ${port}`));
 // Load the FAQ data
 const rawData = fs.readFileSync("faq.json");
 const faqData = JSON.parse(rawData);
+const userActivity = {};
 
 // Initialize the Client
     // LocalAuth stores your session so you don't scan the QR code every time
@@ -134,8 +135,7 @@ mongoose.connect(mongoURI).then(() => {
                         // } catch (e) {
                         //     console.error("Database error:", e);
                         // }
-
-                        const userActivity = {};
+                        
                         // If this user is new, start their counter at 0
                         if (!userActivity[userId]) {
                             userActivity[userId] = 0;
