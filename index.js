@@ -17,14 +17,7 @@ app.listen(port, () => console.log(`Server listening on port ${port}`));
 const rawData = fs.readFileSync("faq.json");
 const faqData = JSON.parse(rawData);
 
-// --- DATABASE CONNECTION ---
-const mongoURI = process.env.MONGO_URI; // We will set this in Render dashboard later
-
-mongoose.connect(mongoURI).then(() => {
-    console.log("Connected to MongoDB");
-
-    const store = new MongoStore({ mongoose: mongoose });
-    // Initialize the Client
+// Initialize the Client
     // LocalAuth stores your session so you don't scan the QR code every time
     const client = new Client({
         // authStrategy: new LocalAuth(),
@@ -51,6 +44,15 @@ mongoose.connect(mongoURI).then(() => {
             ],
         },
     });
+
+// --- DATABASE CONNECTION ---
+const mongoURI = process.env.MONGO_URI; // We will set this in Render dashboard later
+
+mongoose.connect(mongoURI).then(() => {
+    console.log("Connected to MongoDB");
+
+    const store = new MongoStore({ mongoose: mongoose });
+    
 
     // Generate QR Code for login
     client.on("qr", (qr) => {
@@ -133,6 +135,7 @@ mongoose.connect(mongoURI).then(() => {
                         //     console.error("Database error:", e);
                         // }
 
+                        const userActivity = {};
                         // If this user is new, start their counter at 0
                         if (!userActivity[userId]) {
                             userActivity[userId] = 0;
