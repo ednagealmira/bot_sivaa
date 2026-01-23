@@ -151,6 +151,31 @@ mongoose.connect(mongoURI).then(() => {
 
 });
 
+// Add to your existing Express/HTTP bot server:
+const cron = require('node-cron');
+const axios = require('axios');
+
+// Start your existing bot server first, then:
+cron.schedule('*/10 * * * *', async () => {
+    try {
+        // Ping your own server
+        await axios.get(`http://localhost:${PORT}/`);
+        console.log(`[${new Date().toISOString()}] Self-ping successful`);
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] Self-ping failed:`, error.message);
+    }
+});
+
+// Optional: Also ping the external URL for redundancy
+cron.schedule('*/14 * * * *', async () => {
+    try {
+        await axios.get('https://bot-sivaa.onrender.com');
+        console.log(`[${new Date().toISOString()}] External ping successful`);
+    } catch (error) {
+        // Ignore errors - Render might be spinning up
+    }
+});
+
 // Handle Ctrl+C (Manual stop in terminal)
 process.on("SIGINT", async () => {
     console.log("(SIGINT) Shutting down...");
