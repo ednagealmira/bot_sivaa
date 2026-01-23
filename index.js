@@ -111,26 +111,43 @@ mongoose.connect(mongoURI).then(() => {
 
                     if (!excludedTopics.includes(keyword)) {
                         // COUNTER LOGIC
-                        const userSchema = new mongoose.Schema({
-                            userId: { type: String, required: true, unique: true },
-                            messageCount: { type: Number, default: 0 }
-                        });
-                        const User = mongoose.model('User', userSchema);
+                        // const userSchema = new mongoose.Schema({
+                        //     userId: { type: String, required: true, unique: true },
+                        //     messageCount: { type: Number, default: 0 }
+                        // });
+                        // const User = mongoose.model('User', userSchema);
                         const userId = message.from; // Get the user's phone number ID
-                        try {
-                            const user = await User.findOneAndUpdate(
-                                { userId: userId },
-                                { $inc: { messageCount: 1 } }, 
-                                { new: true, upsert: true }
-                            );
-                            if (user.messageCount % 3 === 0) {
+                        // try {
+                        //     const user = await User.findOneAndUpdate(
+                        //         { userId: userId },
+                        //         { $inc: { messageCount: 1 } }, 
+                        //         { new: true, upsert: true }
+                        //     );
+                        //     if (user.messageCount % 3 === 0) {
+                        //         await client.sendMessage(
+                        //             message.from,
+                        //             "Apakah ibu sudah mengerti dengan penjelasan kami?\n\nJika ibu sudah mengerti dan *bersedia mendaftar untuk dilakukan pemeriksaan IVA*, mohon untuk mengisi link google form dibawah ini.\nhttps://tinyurl.com/RencanaIVAPuskesmasBoomBaru",
+                        //         );
+                        //     }
+                        // } catch (e) {
+                        //     console.error("Database error:", e);
+                        // }
+
+                        // If this user is new, start their counter at 0
+                        if (!userActivity[userId]) {
+                            userActivity[userId] = 0;
+                        }
+                        userActivity[userId]++;
+                        // CHECK IF IT IS THE 3RD MESSAGE
+                        if (userActivity[userId] % 3 === 0) {
+                            try {
                                 await client.sendMessage(
                                     message.from,
                                     "Apakah ibu sudah mengerti dengan penjelasan kami?\n\nJika ibu sudah mengerti dan *bersedia mendaftar untuk dilakukan pemeriksaan IVA*, mohon untuk mengisi link google form dibawah ini.\nhttps://tinyurl.com/RencanaIVAPuskesmasBoomBaru",
                                 );
+                            } catch (e) {
+                                console.error(e);
                             }
-                        } catch (e) {
-                            console.error("Database error:", e);
                         }
                     }
                 } else {
