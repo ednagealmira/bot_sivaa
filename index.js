@@ -154,6 +154,7 @@ mongoose.connect(mongoURI).then(() => {
 // Add to your existing Express/HTTP bot server:
 const cron = require('node-cron');
 const axios = require('axios');
+const PORT = process.env.PORT || 5000;
 
 // Start your existing bot server first, then:
 cron.schedule('*/10 * * * *', async () => {
