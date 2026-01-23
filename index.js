@@ -16,11 +16,12 @@ app.listen(port, () => console.log(`Server listening on port ${port}`));
 // Load the FAQ data
 const rawData = fs.readFileSync("faq.json");
 const faqData = JSON.parse(rawData);
+let client;
 const userActivity = {};
 
 // Initialize the Client
     // LocalAuth stores your session so you don't scan the QR code every time
-    const client = new Client({
+    client = new Client({
         // authStrategy: new LocalAuth(),
         authStrategy: new RemoteAuth({
             store: store,
