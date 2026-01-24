@@ -17,6 +17,17 @@ http.createServer((req, res) => {
     res.end("Sivaa Bot is active!");
 }).listen(port, () => console.log(`Server listening on port ${port}`));
 
+// --- PING FAQ BOT EVERY 5 MINUTES ---
+const FAQ_BOT_URL = "https://faq-bot-neso.onrender.com";
+setInterval(async () => {
+    try {
+        const res = await fetch(FAQ_BOT_URL);
+        console.log(`[Keep-Alive] Pinged ${FAQ_BOT_URL} - Status: ${res.status}`);
+    } catch (err) {
+        console.error(`[Keep-Alive] Failed to ping ${FAQ_BOT_URL}:`, err.message);
+    }
+}, 5 * 60 * 1000); // 5 minutes
+
 // Load the FAQ data
 const faqData = JSON.parse(fs.readFileSync(join(__dirname, "faq.json"), "utf-8"));
 const userActivity = {};
