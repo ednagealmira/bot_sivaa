@@ -1,9 +1,14 @@
-const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, initAuthCreds, BufferJSON, proto } = require("@whiskeysockets/baileys");
-const mongoose = require("mongoose");
-const qrcode = require("qrcode-terminal");
-const fs = require("fs");
-const http = require("http");
-const pino = require("pino");
+import makeWASocket, { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds, BufferJSON, proto } from "@whiskeysockets/baileys";
+import mongoose from "mongoose";
+import qrcode from "qrcode-terminal";
+import fs from "fs";
+import http from "http";
+import pino from "pino";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // --- KEEP-ALIVE SERVER ---
 const port = process.env.PORT || 3000;
@@ -13,7 +18,7 @@ http.createServer((req, res) => {
 }).listen(port, () => console.log(`Server listening on port ${port}`));
 
 // Load the FAQ data
-const faqData = JSON.parse(fs.readFileSync("faq.json"));
+const faqData = JSON.parse(fs.readFileSync(join(__dirname, "faq.json"), "utf-8"));
 const userActivity = {};
 
 // --- MongoDB Auth State Storage ---
@@ -70,7 +75,13 @@ async function useMongoDBAuthState() {
                         const value = await readData(`${type}-${id}`);
                         if (value) {
                             if (type === "app-state-sync-key") {
-                                data[id] = proto.Message.AppStateSyncKeyData.fromObject(value);
+                                data[id] = proto.Message.AppStateSyncKeyData.create(value);
+                            } else if (type === "tctoken" && value.token) {
+                                // Restore Buffer from serialized data
+                                data[id] = {
+                                    ...value,
+                                    token: Buffer.from(value.token)
+                                };
                             } else {
                                 data[id] = value;
                             }
@@ -148,12 +159,19 @@ async function startBot() {
             if (connection === "close") {
                 isConnecting = false;
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut &&
+                    statusCode !== DisconnectReason.connectionReplaced;
 
                 console.log("Connection closed. Status:", statusCode);
                 console.log("Error:", lastDisconnect?.error?.message || "Unknown");
 
-                if (shouldReconnect) {
+                if (statusCode === DisconnectReason.connectionReplaced) {
+                    console.log("Session conflict detected (another device connected).");
+                    console.log("Clearing auth data to allow fresh QR scan...");
+                    await AuthState.deleteMany({});
+                    console.log("Auth data cleared. Restarting to show new QR code...");
+                    setTimeout(startBot, 3000);
+                } else if (shouldReconnect) {
                     console.log("Reconnecting in 5 seconds...");
                     setTimeout(startBot, 5000);
                 } else {
