@@ -18,7 +18,7 @@ http.createServer((req, res) => {
 }).listen(port, () => console.log(`Server listening on port ${port}`));
 
 // --- PING FAQ BOT EVERY 5 MINUTES ---
-const FAQ_BOT_URL = "https://faq-bot-neso.onrender.com";
+const FAQ_BOT_URL = "https://faq-bot-tele.onrender.com";
 setInterval(async () => {
     try {
         const res = await fetch(FAQ_BOT_URL);
